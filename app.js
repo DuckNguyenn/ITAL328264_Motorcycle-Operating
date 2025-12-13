@@ -21,8 +21,32 @@ var telemetryData = [];
 var speedChartInstance = null;
 var tempChartInstance = null;
 
+// Biến chứa kiến thức 
+var KNOWLEDGE_BASE = "Đang tải dữ liệu...";
+
 // ==========================================================
-// 3. HÀM SOS KHẨN CẤP
+// 3. HÀM NẠP DỮ LIỆU TRAINING (TỪ FILE TXT)
+// ==========================================================
+async function loadTrainingData() {
+  try {
+    // Gọi file trong thư mục data
+    const response = await fetch('Train/Train.txt');
+    
+    if (response.ok) {
+      KNOWLEDGE_BASE = await response.text();
+      console.log("✅ Đã nạp thành công dữ liệu!");
+    } else {
+      console.warn("⚠️ Không tìm thấy file ");
+      KNOWLEDGE_BASE = "Không có dữ liệu luật. Hãy trả lời dựa trên kiến thức chung.";
+    }
+  } catch (e) {
+    console.error("❌ Lỗi khi đọc file dữ liệu:", e);
+    console.log("👉 Lưu ý: Bạn cần chạy bằng Live Server để đọc được file.");
+  }
+}
+
+// ==========================================================
+// 4. HÀM SOS KHẨN CẤP
 // ==========================================================
 function triggerSOS() {
   var ok = confirm("XÁC NHẬN KHẨN CẤP:\nBạn muốn gửi yêu cầu cứu hộ và gọi điện ngay lập tức?");
@@ -45,7 +69,7 @@ function triggerSOS() {
 }
 
 // ==========================================================
-// 4. TIỆN ÍCH
+// 5. TIỆN ÍCH: ĐỒNG HỒ & XỬ LÝ CHUỖI
 // ==========================================================
 function updateClock() {
   var now = new Date();
@@ -61,7 +85,7 @@ function removeVietnameseTones(str) {
 }
 
 // ==========================================================
-// 5. PHÂN LOẠI TRẠNG THÁI XE
+// 6. PHÂN LOẠI TRẠNG THÁI XE
 // ==========================================================
 function classifySpeed(speed) {
   if (speed == null) return null;
@@ -102,7 +126,7 @@ function classifyRecordOverall(d) {
 }
 
 // ==========================================================
-// 6. RENDER GIAO DIỆN
+// 7. RENDER GIAO DIỆN
 // ==========================================================
 function renderDashboard() {
   if (!telemetryData.length) return;
@@ -200,7 +224,7 @@ function applyHistoryFilter() {
 }
 
 // ==========================================================
-// 7. BIỂU ĐỒ
+// 8. BIỂU ĐỒ & FIREBASE
 // ==========================================================
 function initCharts() {
   var opts = { responsive: true, maintainAspectRatio: false, animation: { duration: 1000 }, scales: { y: { beginAtZero: true } } };
@@ -219,9 +243,6 @@ function updateCharts() {
   if (tempChartInstance) { tempChartInstance.data.labels = labels; tempChartInstance.data.datasets[0].data = slice.map(d => d.temp); tempChartInstance.update(); }
 }
 
-// ==========================================================
-// 8. FIREBASE SYNC
-// ==========================================================
 function subscribeFirebase() {
   var ref = db.ref("telemetry").limitToLast(100);
   ref.on("value", (snapshot) => {
@@ -240,28 +261,11 @@ function subscribeFirebase() {
 // ==========================================================
 // 9. CHATBOT DÙNG COHERE AI (REAL AI)
 // ==========================================================
+
+// 👇👇👇 DÁN KEY COHERE CỦA BẠN VÀO ĐÂY 👇👇👇
 const COHERE_API_KEY = "zjA5g3ebprM9is8UbVW7EGhnq9nzhqlpu9jFHaPf"; 
-const KNOWLEDGE_BASE = `
-=== LUẬT GIAO THÔNG ===
-- Tốc độ tối đa nội thành: 50km/h (đường 2 chiều), 60km/h (đường đôi).
-- Mức phạt nồng độ cồn: Cấm tuyệt đối. Vi phạm phạt từ 2-8 triệu + tước bằng.
-- Vượt đèn đỏ: Phạt 800k - 1tr.
 
-=== KỸ THUẬT XE ===
-- Áp suất lốp: Bánh trước ~2kg, Bánh sau ~2.25kg.
-- Nhớt máy: Thay mỗi 1500km (Loại 10W-40).
-- Nhiệt độ động cơ:
-  + Ổn định: 80 - 100 độ C.
-  + Nóng: > 105 độ C (Cần kiểm tra quạt/nước làm mát).
-  + Quá nhiệt: > 115 độ C (Dừng xe ngay).
-- Góc nghiêng an toàn khi vào cua: Dưới 30 độ.
-- Tốc độ an toàn khi vào cua: Dưới 40 km/h.
-=== SƠ CỨU ===
-- Tai nạn: Gọi cứu hộ. Đặt cảnh báo.
-- Chảy máu: Ép chặt vết thương. Không rút dị vật cắm sâu.
-`;
-
-const BOT_PERSONA = `Bạn là bot hỗ trợ. Trả lời ngắn gọn, thân thiện. Nếu xe nguy hiểm phải cảnh báo ngay.`;
+const BOT_PERSONA = `Bạn là trợ lý xe máy thông minh, thân thiện và hiểu biết sâu rộng về luật giao thông Việt Nam cũng như các vấn đề liên quan đến xe máy. Bạn giúp người dùng trả lời các câu hỏi về luật giao thông, bảo dưỡng xe máy, và cung cấp lời khuyên an toàn khi lái xe. Bạn luôn giữ thái độ lịch sự, chuyên nghiệp và tận tâm hỗ trợ người dùng.`;
 
 function setupChat() {
   var els = {
@@ -293,7 +297,7 @@ async function sendChatMessage(input, container) {
   db.ref("chatMessages").push({ sender: "user", text: text, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
   if (isSOSRequest(text)) {
-      setTimeout(() => { db.ref("chatMessages").push({ sender: "bot", text: "🚨SOS: Bấm nút gọi cứu hộ bên dưới!", isSOS: true, timestamp: firebase.database.ServerValue.TIMESTAMP }); }, 500);
+      setTimeout(() => { db.ref("chatMessages").push({ sender: "bot", text: "🚨 CẢNH BÁO SOS: Bấm nút gọi cứu hộ bên dưới!", isSOS: true, timestamp: firebase.database.ServerValue.TIMESTAMP }); }, 500);
       return;
   }
 
@@ -314,17 +318,22 @@ function isSOSRequest(text) {
 async function callCohereAI(userMessage) {
     var latest = telemetryData.length > 0 ? telemetryData[telemetryData.length - 1] : {};
 
-    // Chuẩn bị dữ liệu gửi (Preamble)
+    // Prompt kết hợp Dữ liệu xe + Kiến thức từ file
     const systemInstruction = `
       ${BOT_PERSONA}
-      ${KNOWLEDGE_BASE}
       
-      [DỮ LIỆU XE HIỆN TẠI]:
+      === THÔNG TIN TỪ CẢM BIẾN XE ===
       - Vận tốc: ${latest.speed || 0} km/h
       - Nhiệt độ: ${latest.temp || 0} độ C
       - Góc nghiêng: ${latest.tilt ? latest.tilt.toFixed(1) : 0} độ
       
-      Nhiệm vụ: Trả lời ngắn gọn. Cảnh báo ngay nếu thông số nguy hiểm.
+      === CƠ SỞ DỮ LIỆU KIẾN THỨC ===
+      ${KNOWLEDGE_BASE}
+      
+      NHIỆM VỤ:
+      1. Trả lời câu hỏi người dùng dựa trên Kiến thức và Thông tin cảm biến.
+      2. Nếu thông số xe nguy hiểm, phải cảnh báo ngay.
+      3. Ngắn gọn, súc tích.
     `;
 
     const url = "https://api.cohere.ai/v1/chat";
@@ -338,8 +347,7 @@ async function callCohereAI(userMessage) {
                 "X-Client-Name": "MotoApp"
             },
             body: JSON.stringify({
-                // ⚠️ QUAN TRỌNG: Sửa tên model thành bản mới nhất dưới đây
-                model: "command-r-08-2024", 
+                model: "command-r-08-2024", // ⚠️ Model mới nhất (đã fix lỗi command-r bị xóa)
                 message: userMessage,
                 preamble: systemInstruction,
                 temperature: 0.3
@@ -347,17 +355,10 @@ async function callCohereAI(userMessage) {
         });
 
         const data = await response.json();
-        
-        if (data.text) {
-            return data.text;
-        } else {
-            console.error("Cohere Error:", data);
-            // Nếu vẫn lỗi thì hiện thông báo cụ thể
-            return "Lỗi API: " + (data.message || JSON.stringify(data));
-        }
+        if (data.text) return data.text;
+        else throw new Error(data.message || "Cohere không phản hồi");
     } catch (err) {
-        console.error("Lỗi mạng:", err);
-        return "Lỗi kết nối mạng: " + err.message;
+        throw err;
     }
 }
 
@@ -368,8 +369,20 @@ function addMessageUI(msg, container) {
   var dt = new Date(msg.timestamp);
   var timeStr = dt.getHours() + ":" + (dt.getMinutes()<10?'0':'') + dt.getMinutes();
   
-  div.innerHTML = `<span class="chat-meta">${msg.sender === "user" ? "Bạn" : "Bot"} • ${timeStr}</span><span>${msg.text}</span>`;
-  
+// 1. Tạo phần tên và giờ
+  var meta = document.createElement("div");
+  meta.className = "chat-meta";
+  meta.textContent = (msg.sender === "user" ? "Bạn" : "Bot") + " • " + timeStr;
+  div.appendChild(meta);
+
+  // 2. Tạo phần nội dung tin nhắn (QUAN TRỌNG: white-space giúp xuống dòng)
+  var txt = document.createElement("div");
+  txt.style.whiteSpace = "pre-wrap";  // <--- Lệnh này giúp 1. 2. 3. xuống hàng
+  txt.style.wordBreak = "break-word"; // Ngắt dòng nếu từ quá dài
+  txt.textContent = msg.text;
+  div.appendChild(txt);
+
+  // --- KẾT THÚC ĐOẠN CODE MỚI ---  
   if (msg.isSOS) {
       var btn = document.createElement("button");
       btn.className = "chat-sos-btn";
@@ -403,6 +416,9 @@ window.addEventListener("DOMContentLoaded", function () {
   if (sos) sos.onclick = triggerSOS;
 
   updateClock(); setInterval(updateClock, 1000);
+  
+  // BẮT ĐẦU NẠP DỮ LIỆU & CHẠY APP
+  loadTrainingData(); 
   setupChat();
   subscribeFirebase();
 });
