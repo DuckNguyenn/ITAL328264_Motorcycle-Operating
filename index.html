@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Hệ thống giám sát trạng thái vận hành xe máy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ thống giám sát vận hành xe máy</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,13 +12,9 @@
       <div class="header-inner">
         <div class="header-left">
           <div class="header-brand">
-            <div class="brand-top">
-              Hệ thống giám sát trạng thái vận hành xe máy theo thời gian thực
-            </div>
-            <div class="brand-sub"></div>
+            <div class="brand-top">Phuong va nhung nguoi ban</div>
           </div>
         </div>
-
         <div class="header-right">
           <span class="clock-label">Thời gian thực:</span>
           <span id="realtime-clock" class="clock-value">--/--/---- --:--:--</span>
@@ -28,19 +25,17 @@
     <div class="layout">
       <aside class="sidebar">
         <div class="sidebar-logo-block">
-          <img src="image/HCMUTE.jpg" class="sidebar-logo" alt="HCMUTE" onerror="this.style.display='none'"/>
+          <img src="image/HCMUTE.jpg" class="sidebar-logo" alt="Logo" onerror="this.style.display='none'"/>
           <div class="sidebar-logo-text">Dashboard</div>
         </div>
-
         <nav class="sidebar-nav">
           <button class="nav-item active" data-view="dashboard">Dashboard</button>
-          <button class="nav-item" data-view="history">History</button>
+          <button class="nav-item" data-view="history">Lịch sử</button>
         </nav>
       </aside>
 
       <main class="content">
         <section class="view active" data-view="dashboard">
-
           <div class="card-row">
             <div class="card info-card">
               <div class="card-title">Vận tốc hiện tại</div>
@@ -49,25 +44,22 @@
                 <div class="card-unit">km/h</div>
               </div>
               <div class="card-sub">
-                <div class="speed-bar">
-                  <div class="speed-bar-fill" id="speed-bar-fill"></div>
-                </div>
+                <div class="speed-bar"><div class="speed-bar-fill" id="speed-bar-fill"></div></div>
               </div>
+              <div class="card-badge" id="speed-badge">--</div>
+              <div class="card-status-text" id="speed-status-text">--</div>
             </div>
 
             <div class="card info-card">
               <div class="card-title">Góc nghiêng</div>
               <div class="card-main tilt-main">
-                <div class="tilt-visual-wrapper">
-                  <div class="tilt-bike" id="tilt-bike"></div>
-                </div>
+                <div class="tilt-visual-wrapper"><div class="tilt-bike" id="tilt-bike"></div></div>
                 <div class="tilt-info">
                   <div class="card-value small" id="tilt-current">--°</div>
-                  <div class="tilt-status" id="tilt-status">
-                    Đang chờ dữ liệu
-                  </div>
                 </div>
               </div>
+              <div class="card-badge" id="tilt-badge">--</div>
+              <div class="card-status-text" id="tilt-status-text">--</div>
             </div>
 
             <div class="card info-card">
@@ -76,199 +68,121 @@
                 <div class="card-value" id="temp-current-detail">--</div>
                 <div class="card-unit">°C</div>
               </div>
-              <div class="temp-badge" id="temp-badge">--</div>
-              <div class="temp-status-text" id="temp-status-text">
-                Chưa có dữ liệu.
-              </div>
+              <div class="card-badge" id="temp-badge">--</div>
+              <div class="card-status-text" id="temp-status-text">Chưa có dữ liệu</div>
             </div>
           </div>
 
           <div class="chart-row">
             <div class="card chart-card">
-              <div class="card-title">Biểu đồ vận tốc theo thời gian</div>
-              <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="speed-chart-canvas"></canvas>
-              </div>
+              <div class="card-title">Biểu đồ vận tốc</div>
+              <div style="height: 260px; width: 100%;"><canvas id="speed-chart-canvas"></canvas></div>
             </div>
             <div class="card chart-card">
-              <div class="card-title">Biểu đồ nhiệt độ động cơ theo thời gian</div>
-              <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="temp-chart-canvas"></canvas>
-              </div>
+              <div class="card-title">Biểu đồ nhiệt độ</div>
+              <div style="height: 260px; width: 100%;"><canvas id="temp-chart-canvas"></canvas></div>
             </div>
           </div>
 
           <div class="card summary-card">
-            <div class="card-title">Bảng tham chiếu giá trị an toàn trong ngưỡng</div>
+            <div class="card-title">Bảng tham chiếu an toàn</div>
             <table class="summary-table">
-              <thead>
-                <tr>
-                  <th>Thông số</th>
-                  <th>Giá trị hiện tại</th>
-                  <th>Ngưỡng an toàn</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody id="summary-body">
-                <tr>
-                  <td>Vận tốc</td>
-                  <td id="summary-speed-value">-- km/h</td>
-                  <td>0 – 60 km/h (khuyến nghị trong đô thị)</td>
-                  <td id="summary-speed-status">--</td>
-                </tr>
-                <tr>
-                  <td>Góc nghiêng</td>
-                  <td id="summary-tilt-value">--°</td>
-                  <td>< 25°: an toàn · 25–40°: rủi ro · > 40°: nguy hiểm</td>
-                  <td id="summary-tilt-status">--</td>
-                </tr>
-                <tr>
-                  <td>Nhiệt độ động cơ</td>
-                  <td id="summary-temp-value">-- °C</td>
-                  <td>< 90°C: an toàn · 90–110°C: cảnh báo · > 110°C: quá nhiệt</td>
-                  <td id="summary-temp-status">--</td>
-                </tr>
+              <thead><tr><th>Thông số</th><th>Giá trị</th><th>Ngưỡng an toàn</th><th>Trạng thái</th></tr></thead>
+              <tbody>
+                <tr><td>Vận tốc</td><td id="summary-speed-value">--</td><td>0-60 km/h</td><td id="summary-speed-status">--</td></tr>
+                <tr><td>Góc nghiêng</td><td id="summary-tilt-value">--</td><td>< 25°</td><td id="summary-tilt-status">--</td></tr>
+                <tr><td>Nhiệt độ</td><td id="summary-temp-value">--</td><td>< 90°C</td><td id="summary-temp-status">--</td></tr>
               </tbody>
             </table>
           </div>
-
-          <div class="sos-wrapper">
-            <button id="sos-button" class="sos-btn">
-              🚨 Gọi cứu hộ
-            </button>
-          </div>
+          <div class="sos-wrapper"><button id="sos-button" class="sos-btn">🚨 Gọi cứu hộ</button></div>
         </section>
 
         <section class="view" data-view="history">
           <div class="card history-filter-card">
-            <div class="card-title">Lọc dữ liệu lịch sử</div>
-            <div class="history-filters">
-              <div class="filter-item">
-                <label for="history-type">Trạng thái</label>
-                <select id="history-type">
-                  <option value="all">Tất cả</option>
-                  <option value="safe">An toàn</option>
-                  <option value="warning">Cảnh báo</option>
-                  <option value="danger">Nguy hiểm</option>
-                </select>
-              </div>
-              <div class="filter-item">
-                <label for="history-from">Từ thời điểm</label>
-                <input type="datetime-local" id="history-from" />
-              </div>
-              <div class="filter-item">
-                <label for="history-to">Đến thời điểm</label>
-                <input type="datetime-local" id="history-to" />
-              </div>
-              <div class="filter-item button-wrapper">
-                <button id="history-apply">Áp dụng</button>
-                <button id="history-reset" class="secondary">Xóa lọc</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card summary-card history-summary-card">
-            <div class="card-title">
-              Bảng tham chiếu giá trị an toàn (áp dụng cho dữ liệu lịch sử)
-            </div>
-            <table class="summary-table">
-              <thead>
-                <tr>
-                  <th>Thông số</th>
-                  <th>Ngưỡng an toàn</th>
-                  <th>Ghi chú</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Vận tốc</td>
-                  <td>0 – 60 km/h (khuyến nghị trong đô thị)</td>
-                  <td>
-                    > 60 km/h: Cảnh báo · > 90 km/h: Nguy hiểm
-                  </td>
-                </tr>
-                <tr>
-                  <td>Góc nghiêng</td>
-                  <td>< 25°: an toàn · 25–40°: rủi ro · > 40°: nguy hiểm</td>
-                  <td>
-                    Góc càng lớn nguy cơ trượt/ngã càng cao.
-                  </td>
-                </tr>
-                <tr>
-                  <td>Nhiệt độ động cơ</td>
-                  <td>< 90°C: an toàn · 90–110°C: cảnh báo · > 110°C: quá nhiệt</td>
-                  <td>
-                    Nhiệt độ cao kéo dài gây hỏng máy.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+             <div class="card-title">Bộ lọc dữ liệu</div>
+             <div class="history-filters-container">
+                <div class="filter-group">
+                  <label>Từ ngày/giờ:</label>
+                  <input type="datetime-local" id="filter-start" class="filter-input">
+                </div>
+                <div class="filter-group">
+                  <label>Đến ngày/giờ:</label>
+                  <input type="datetime-local" id="filter-end" class="filter-input">
+                </div>
+                <div class="filter-group">
+                  <label>Trạng thái:</label>
+                  <select id="filter-status" class="filter-input">
+                    <option value="all">-- Tất cả --</option>
+                    <option value="safe">An toàn</option>
+                    <option value="warning">Cảnh báo</option>
+                    <option value="danger">Nguy hiểm</option>
+                  </select>
+                </div>
+                <div class="filter-actions">
+                  <button id="history-apply" class="btn-filter">🔍 Lọc</button>
+                  <button id="history-reset" class="btn-reset">↺ Reset</button>
+                </div>
+             </div>
           </div>
 
           <div class="card history-table-card">
-            <div class="card-title">
-              Lịch sử đo (lấy từ Firebase Realtime Database)
-              <span id="history-count" class="history-count"></span>
-            </div>
+            <div class="card-title">Lịch sử đo <span id="history-count"></span></div>
             <div class="history-table-wrapper">
               <table class="history-table">
-                <thead>
-                  <tr>
-                    <th>Thời điểm đo</th>
-                    <th>Vận tốc (km/h)</th>
-                    <th>Góc nghiêng (°)</th>
-                    <th>Nhiệt độ (°C)</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody id="history-body">
-                  </tbody>
+                <thead><tr><th>Thời gian</th><th>Vận tốc</th><th>Góc nghiêng</th><th>Nhiệt độ</th><th>Trạng thái</th></tr></thead>
+                <tbody id="history-body"></tbody>
               </table>
             </div>
           </div>
         </section>
+
+        <footer class="app-footer">
+          <div class="footer-content">
+            <img src="image/Duc.jpg" alt="Duc" class="footer-avatar" onerror="this.src='https://via.placeholder.com/60'"/>
+            <div class="footer-info">
+              <div class="footer-item">
+                <span class="footer-label">Email:</span>
+                <a href="mailto:23139012@student.hcmute.edu.vn">23139012@student.hcmute.edu.vn</a>
+              </div>
+              <div class="footer-item">
+                <span class="footer-label">SĐT:</span>
+                <a href="tel:0972723011">0972723011</a>
+              </div>
+            </div>
+          </div>
+          <div class="footer-copyright">
+            Duck Nguyen
+          </div>
+        </footer>
+
       </main>
     </div>
 
-    <footer class="footer">
-      <div class="footer-top">Phượng và những người bạn</div>
-      <div class="footer-bottom">
-        Liên hệ:
-        <a href="mailto:ntmduc281005.nvtroi2023@gmail.com">
-          ntmduc281005.nvtroi2023@gmail.com
-        </a>
-         | 
-        SĐT:
-        <a href="tel:0972723011">0972723011</a>
-      </div>
-    </footer>
-  </div>
-
-  <div id="chatbox">
-    <div id="chatbox-header">
-      <div class="chatbox-header-left">
-        <span class="chatbox-title">Hỗ trợ</span>
-        <span class="chatbox-status-dot"></span>
-        <span class="chatbox-status-text">Online</span>
-      </div>
-      <div class="chatbox-header-right">
-        <button id="chatbox-clear" title="Xóa lịch sử">🗑</button>
-        <button id="chatbox-toggle">−</button>
-      </div>
+    <div id="chatbox">
+        <div id="chatbox-header">
+            <div class="chatbox-header-left">
+                <span>Trợ lý ảo AI</span>
+                <span class="chatbox-status-dot"></span>
+            </div>
+            <div class="chatbox-header-right">
+                <button id="chatbox-clear" title="Xóa lịch sử trò chuyện">🗑</button> 
+                <button id="chatbox-toggle">_</button>
+            </div>
+        </div>
+        <div id="chatbox-messages"></div>
+        <div id="chatbox-input-area">
+            <input type="text" id="chatbox-input" placeholder="Hỏi gì đó..." />
+            <button id="chatbox-send">Gửi</button>
+        </div>
     </div>
-    <div id="chatbox-messages"></div>
-    <div id="chatbox-input-area">
-      <input type="text" id="chatbox-input" placeholder="Nhập tin nhắn..." />
-      <button id="chatbox-send">Gửi</button>
-    </div>
+    <button id="chatbox-button">💬</button>
   </div>
-  <button id="chatbox-button">💬</button>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
   <script src="app.js"></script>
 </body>
 </html>
