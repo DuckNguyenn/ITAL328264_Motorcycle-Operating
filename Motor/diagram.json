@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "author": "DucTTIoT",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot-speed",
+      "top": -100,
+      "left": -120,
+      "attrs": { "label": "Vận tốc (P34)" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot-tilt",
+      "top": -100,
+      "left": 20,
+      "attrs": { "label": "Góc nghiêng (P35)" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot-temp",
+      "top": -100,
+      "left": 160,
+      "attrs": { "label": "Nhiệt độ (P32)" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    
+    [ "pot-speed:GND", "esp:GND.1", "black", [ "v20" ] ],
+    [ "pot-speed:VCC", "esp:3V3", "red", [ "v20" ] ],
+    [ "pot-speed:SIG", "esp:34", "green", [ "v10" ] ],
+
+    [ "pot-tilt:GND", "esp:GND.1", "black", [ "v30" ] ],
+    [ "pot-tilt:VCC", "esp:3V3", "red", [ "v30" ] ],
+    [ "pot-tilt:SIG", "esp:35", "blue", [ "v20" ] ],
+
+    [ "pot-temp:GND", "esp:GND.2", "black", [ "v40" ] ],
+    [ "pot-temp:VCC", "esp:3V3", "red", [ "v40" ] ],
+    [ "pot-temp:SIG", "esp:32", "orange", [ "v30" ] ]
+  ]
+}

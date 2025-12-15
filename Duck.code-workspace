@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "Motor",
+			"path": "../../../Documents/PlatformIO/Projects/Motor"
+		}
+	],
+	"settings": {}
+}
