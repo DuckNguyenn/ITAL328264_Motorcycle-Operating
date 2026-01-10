@@ -74,8 +74,8 @@ void loop() {
     doc["speed"] = speed;
     doc["tilt"] = tilt;
     doc["temp"] = temp;
-    doc["lat"] = 10.8506;  // Vĩ độ (Ví dụ: ĐH Sư phạm Kỹ thuật)
-    doc["lng"] = 106.7719; // Kinh độ
+    doc["lat"] = 10.8506; 
+    doc["lng"] = 106.7719; 
 
     char jsonBuffer[512];
     serializeJson(doc, jsonBuffer);

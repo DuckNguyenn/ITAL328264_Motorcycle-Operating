@@ -1,5 +1,14 @@
 // ==========================================================
-// 1. CẤU HÌNH FIREBASE
+// 1. CÔNG CỤ TÌM LỖI (DEBUG) - AN TOÀN HƠN
+// ==========================================================
+window.onerror = function(msg, url, line) {
+    if (msg.includes("ResizeObserver") || msg.includes("Script error")) return;
+    // alert("⚠️ LỖI JS: " + msg + "\nTại dòng: " + line); // Đã tắt alert để không làm phiền, vì ta đã fix lỗi chính
+    console.error("Lỗi JS: " + msg + " dòng " + line);
+};
+
+// ==========================================================
+// 2. CẤU HÌNH FIREBASE
 // ==========================================================
 var firebaseConfig = {
   apiKey: "AIzaSyDE1uDPk041Iaskaym5KYjF-L_DEapChNM",
@@ -10,11 +19,15 @@ var firebaseConfig = {
   messagingSenderId: "324292791840",
   appId: "1:324292791840:web:68feb5c43e71a2b7bb7645",
 };
-firebase.initializeApp(firebaseConfig);
-var db = firebase.database();
+
+// Khởi tạo Firebase an toàn
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+var db = (typeof firebase !== 'undefined') ? firebase.database() : null;
 
 // ==========================================================
-// 2. BIẾN TOÀN CỤC
+// 3. BIẾN TOÀN CỤC
 // ==========================================================
 var telemetryData = [];
 var speedChartInstance = null;
@@ -22,16 +35,14 @@ var tempChartInstance = null;
 var KNOWLEDGE_BASE = "Đang tải dữ liệu...";
 
 // ==========================================================
-// 3. LOGIC XỬ LÝ CHUNG
+// 4. LOGIC XỬ LÝ CHUNG & UTILS
 // ==========================================================
 async function loadTrainingData() {
   try {
     const response = await fetch('Train/Train.txt');
     if (response.ok) {
       KNOWLEDGE_BASE = await response.text();
-      console.log("✅ Đã nạp dữ liệu AI");
-    } else {
-      KNOWLEDGE_BASE = "Không có dữ liệu luật. Trả lời dựa trên kiến thức chung.";
+      console.log("✅ Đã nạp dữ liệu training");
     }
   } catch (e) { console.error("Lỗi đọc file:", e); }
 }
@@ -39,12 +50,14 @@ async function loadTrainingData() {
 function triggerSOS() {
   if (!confirm("XÁC NHẬN KHẨN CẤP: Gọi cứu hộ?")) return;
   var latest = telemetryData.slice(-1)[0] || {};
-  db.ref("sosRequests").push({
-    timestamp: firebase.database.ServerValue.TIMESTAMP,
-    note: "Yêu cầu khẩn cấp",
-    lat: latest.lat || null,
-    lng: latest.lng || null,
-  });
+  if (db) {
+      db.ref("sosRequests").push({
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        note: "Yêu cầu khẩn cấp",
+        lat: latest.lat || null,
+        lng: latest.lng || null,
+      });
+  }
   window.location.href = "tel:0972723011";
 }
 
@@ -62,7 +75,7 @@ function removeVietnameseTones(str) {
 }
 
 // ==========================================================
-// 4. PHÂN LOẠI TRẠNG THÁI (CÓ BADGE)
+// 5. PHÂN LOẠI TRẠNG THÁI
 // ==========================================================
 function classifySpeed(speed) {
   if (speed == null) return null;
@@ -100,7 +113,7 @@ function classifyRecordOverall(d) {
 }
 
 // ==========================================================
-// 5. RENDER DASHBOARD
+// 6. RENDER DASHBOARD (GIAO DIỆN)
 // ==========================================================
 function renderDashboard() {
   if (!telemetryData.length) return;
@@ -108,7 +121,9 @@ function renderDashboard() {
   var speed = latest.speed; var tilt = latest.tilt; var temp = latest.temp;
 
   // --- VẬN TỐC ---
-  document.getElementById("speed-current-detail").textContent = speed != null ? speed : "--";
+  var elSpeed = document.getElementById("speed-current-detail");
+  if(elSpeed) elSpeed.textContent = speed != null ? speed : "--";
+  
   var pct = speed != null ? Math.max(0, Math.min(100, (speed / 160) * 100)) : 0;
   var speedBar = document.getElementById("speed-bar-fill");
   if(speedBar) speedBar.style.width = pct + "%";
@@ -123,7 +138,9 @@ function renderDashboard() {
   }
 
   // --- GÓC NGHIÊNG ---
-  document.getElementById("tilt-current").textContent = tilt != null ? tilt.toFixed(1) + "°" : "--°";
+  var elTilt = document.getElementById("tilt-current");
+  if(elTilt) elTilt.textContent = tilt != null ? tilt.toFixed(1) + "°" : "--°";
+  
   var tiltBike = document.getElementById("tilt-bike");
   if (tiltBike && tilt != null) tiltBike.style.transform = "rotate(" + -tilt + "deg)";
   
@@ -137,7 +154,9 @@ function renderDashboard() {
   }
 
   // --- NHIỆT ĐỘ ---
-  document.getElementById("temp-current-detail").textContent = temp != null ? temp : "--";
+  var elTemp = document.getElementById("temp-current-detail");
+  if(elTemp) elTemp.textContent = temp != null ? temp : "--";
+  
   var teCls = classifyTemp(temp);
   var teBadge = document.getElementById("temp-badge");
   var teText = document.getElementById("temp-status-text");
@@ -173,7 +192,7 @@ function renderHistory(filtered) {
   if (!body) return;
 
   body.innerHTML = "";
-  var displayData = data.slice().reverse();
+  var displayData = data.slice().reverse(); 
 
   displayData.forEach((d) => {
     var tr = document.createElement("tr");
@@ -226,9 +245,11 @@ function resetHistoryFilter() {
 }
 
 // ==========================================================
-// 6. BIỂU ĐỒ (TRỤC Y CỐ ĐỊNH)
+// 7. BIỂU ĐỒ (Chart.js)
 // ==========================================================
 function initCharts() {
+  if (typeof Chart === 'undefined') return;
+
   var commonPlugins = {
     tooltip: {
       enabled: true, backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -272,12 +293,21 @@ function updateCharts() {
   if (!speedChartInstance || !tempChartInstance) initCharts();
   var slice = telemetryData.slice(-15);
   var labels = slice.map(d => { var dt = new Date(d.timestamp); return dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds(); });
-  if (speedChartInstance) { speedChartInstance.data.labels = labels; speedChartInstance.data.datasets[0].data = slice.map(d => d.speed); speedChartInstance.update(); }
-  if (tempChartInstance) { tempChartInstance.data.labels = labels; tempChartInstance.data.datasets[0].data = slice.map(d => d.temp); tempChartInstance.update(); }
+  
+  if (speedChartInstance) { 
+      speedChartInstance.data.labels = labels; 
+      speedChartInstance.data.datasets[0].data = slice.map(d => d.speed); 
+      speedChartInstance.update('none'); 
+  }
+  if (tempChartInstance) { 
+      tempChartInstance.data.labels = labels; 
+      tempChartInstance.data.datasets[0].data = slice.map(d => d.temp); 
+      tempChartInstance.update('none'); 
+  }
 }
 
 // ==========================================================
-// 7. CHATBOT & MQTT
+// 8. CHATBOT
 // ==========================================================
 const COHERE_API_KEY = "zjA5g3ebprM9is8UbVW7EGhnq9nzhqlpu9jFHaPf";
 const BOT_PERSONA = `Bạn là trợ lý xe máy thông minh...`;
@@ -288,25 +318,32 @@ function setupChat() {
 
   els.btn.onclick = () => { els.box.style.display = "flex"; els.btn.style.display = "none"; };
   els.toggle.onclick = () => { els.box.style.display = "none"; els.btn.style.display = "block"; };
-  if (els.clear) els.clear.onclick = () => { if (confirm("Xóa lịch sử?")) db.ref("chatMessages").remove().then(() => els.msgs.innerHTML = ""); };
+  if (els.clear && db) els.clear.onclick = () => { if (confirm("Xóa lịch sử?")) db.ref("chatMessages").remove().then(() => els.msgs.innerHTML = ""); };
+  
   const send = () => sendChatMessage(els.input, els.msgs);
   els.send.onclick = send;
   els.input.onkeypress = (e) => { if (e.key === "Enter") { e.preventDefault(); send(); } };
-  db.ref("chatMessages").limitToLast(50).on("child_added", (snap) => { var msg = snap.val(); if (msg) addMessageUI(msg, els.msgs); });
+  
+  if(db) {
+    db.ref("chatMessages").limitToLast(50).on("child_added", (snap) => { var msg = snap.val(); if (msg) addMessageUI(msg, els.msgs); });
+  }
 }
 
 async function sendChatMessage(input, container) {
   var text = input.value.trim();
   if (!text) return;
   input.value = "";
-  db.ref("chatMessages").push({ sender: "user", text: text, timestamp: firebase.database.ServerValue.TIMESTAMP });
+  if(db) db.ref("chatMessages").push({ sender: "user", text: text, timestamp: firebase.database.ServerValue.TIMESTAMP });
+  
   if (removeVietnameseTones(text).toLowerCase().includes("sos")) {
-    setTimeout(() => { db.ref("chatMessages").push({ sender: "bot", text: "🚨 CẢNH BÁO SOS: Bấm nút gọi cứu hộ bên dưới!", isSOS: true, timestamp: firebase.database.ServerValue.TIMESTAMP }); }, 500); return;
+    setTimeout(() => { if(db) db.ref("chatMessages").push({ sender: "bot", text: "🚨 CẢNH BÁO SOS: Bấm nút gọi cứu hộ bên dưới!", isSOS: true, timestamp: firebase.database.ServerValue.TIMESTAMP }); }, 500); return;
   }
   try {
     const reply = await callCohereAI(text);
-    db.ref("chatMessages").push({ sender: "bot", text: reply, isSOS: false, timestamp: firebase.database.ServerValue.TIMESTAMP });
-  } catch (err) { db.ref("chatMessages").push({ sender: "bot", text: "Lỗi AI: " + err.message, timestamp: firebase.database.ServerValue.TIMESTAMP }); }
+    if(db) db.ref("chatMessages").push({ sender: "bot", text: reply, isSOS: false, timestamp: firebase.database.ServerValue.TIMESTAMP });
+  } catch (err) { 
+      if(db) db.ref("chatMessages").push({ sender: "bot", text: "Lỗi AI: " + err.message, timestamp: firebase.database.ServerValue.TIMESTAMP }); 
+  }
 }
 
 async function callCohereAI(userMessage) {
@@ -330,43 +367,102 @@ function addMessageUI(msg, container) {
   container.appendChild(div); container.scrollTop = container.scrollHeight;
 }
 
-// MQTT SETUP
+// ==========================================================
+// 9. XỬ LÝ DỮ LIỆU TỪ MỌI NGUỒN (MQTT + HTTP)
+// ==========================================================
+function processIncomingData(record) {
+    if (!record || typeof record.speed === 'undefined') return;
+
+    var lastRecord = telemetryData[telemetryData.length - 1];
+    if (lastRecord && Math.abs(lastRecord.timestamp - record.timestamp) < 100) {
+        return; 
+    }
+
+    telemetryData.push(record);
+    if (telemetryData.length > 500) telemetryData.shift();
+    
+    // --- FIX LỖI LOCALSTORAGE BỊ NULL TRÊN GIẢ LẬP ---
+    try {
+        if (typeof localStorage !== 'undefined' && localStorage !== null) {
+            localStorage.setItem("telemetry_backup", JSON.stringify(telemetryData));
+        }
+    } catch(e) { /* Bỏ qua nếu không lưu được */ }
+    // -------------------------------------------------
+
+    var activeView = document.querySelector('.view.active');
+    if (activeView && activeView.dataset.view === 'dashboard') {
+         renderDashboard();
+         updateCharts();
+    }
+}
+
+// ==========================================================
+// 10. KẾT NỐI MQTT (CHO WEB PC)
+// ==========================================================
 const MQTT_HOST = "2694844bdff04a26b4afe749bb37db5a.s1.eu.hivemq.cloud";
 const MQTT_PORT = 8884; 
 const MQTT_USERNAME = "DucTTIoT";  
 const MQTT_PASSWORD = "123456789aA"; 
 const MQTT_TOPIC = "motor/phuong/telemetry";
 const MQTT_CLIENT_ID = "web_client_" + new Date().getTime();
-var mqttClient = new Paho.MQTT.Client(MQTT_HOST, MQTT_PORT, MQTT_CLIENT_ID);
+var mqttClient = null;
 
 function initMQTT() {
   console.log("🚀 MQTT Connecting...");
-  mqttClient.onConnectionLost = (obj) => { if(obj.errorCode !== 0) setTimeout(initMQTT, 5000); };
+  if (typeof Paho === 'undefined') return; 
   
-  // XỬ LÝ KHI NHẬN TIN NHẮN MQTT
-  mqttClient.onMessageArrived = (msg) => {
-    try {
-        var data = JSON.parse(msg.payloadString);
-        var record = { timestamp: Date.now(), speed: Number(data.speed), tilt: Number(data.tilt), temp: Number(data.temp), lat: data.lat, lng: data.lng };
-        
-        // --- ĐÂY LÀ ĐOẠN LƯU VÀO FIREBASE ---
-        // Giúp bạn lưu lại lịch sử lâu dài, không bị mất khi load lại trang
-        db.ref("telemetry_log").push(record);
-        // ------------------------------------
+  try {
+      mqttClient = new Paho.MQTT.Client(MQTT_HOST, MQTT_PORT, MQTT_CLIENT_ID);
+      mqttClient.onConnectionLost = (obj) => { 
+         if(obj.errorCode !== 0) setTimeout(initMQTT, 5000); 
+      };
+      
+      mqttClient.onMessageArrived = (msg) => {
+        try {
+            var data = JSON.parse(msg.payloadString);
+            var record = { timestamp: Date.now(), speed: Number(data.speed), tilt: Number(data.tilt), temp: Number(data.temp), lat: data.lat, lng: data.lng };
+            
+            if(db) db.ref("telemetry_log").push(record);
+            processIncomingData(record);
+        } catch (e) { console.error("MQTT Parse Error", e); }
+      };
 
-        telemetryData.push(record);
-        if (telemetryData.length > 500) telemetryData.shift();
-        localStorage.setItem("telemetry_backup", JSON.stringify(telemetryData));
-        
-        if (document.querySelector('.view.active').dataset.view === 'dashboard') { renderDashboard(); updateCharts(); }
-        else if (!document.getElementById("filter-start").value) { renderHistory(); }
-    } catch (e) { console.error("MQTT Parse Error", e); }
-  };
-
-  mqttClient.connect({ onSuccess: () => { console.log("✅ MQTT Connected"); mqttClient.subscribe(MQTT_TOPIC); }, onFailure: (e) => { console.log("❌ MQTT Fail", e); setTimeout(initMQTT, 5000); }, useSSL: true, userName: MQTT_USERNAME, password: MQTT_PASSWORD });
+      mqttClient.connect({ 
+          onSuccess: () => { console.log("✅ MQTT Connected"); mqttClient.subscribe(MQTT_TOPIC); }, 
+          onFailure: (e) => { console.warn("❌ MQTT Failed (Mobile thường bị chặn)"); setTimeout(initMQTT, 5000); }, 
+          useSSL: true, userName: MQTT_USERNAME, password: MQTT_PASSWORD 
+      });
+  } catch(err) { console.warn("MQTT Error:", err); }
 }
 
-// INIT
+// ==========================================================
+// 11. KẾT NỐI HTTP POLLING (CHO APP MOBILE/GIẢ LẬP)
+// ==========================================================
+function startHTTPPolling() {
+    console.log("📡 Đã bật chế độ HTTP Polling (Backup Mode)...");
+    
+    // URL API Firebase
+    const firebaseUrl = "https://phuong-va-nhung-nguoi-ban-default-rtdb.asia-southeast1.firebasedatabase.app/telemetry_log.json?orderBy=%22$key%22&limitToLast=1";
+
+    setInterval(function() {
+        fetch(firebaseUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (!data) return;
+                var keys = Object.keys(data);
+                if (keys.length > 0) {
+                    var record = data[keys[0]];
+                    if (!record.timestamp) record.timestamp = Date.now();
+                    processIncomingData(record);
+                }
+            })
+            .catch(err => { console.warn("Polling Error:", err); });
+    }, 2000); 
+}
+
+// ==========================================================
+// 12. KHỞI CHẠY (INIT)
+// ==========================================================
 window.addEventListener("DOMContentLoaded", function () {
   var navs = document.querySelectorAll(".nav-item"); var views = document.querySelectorAll(".view");
   navs.forEach(btn => btn.onclick = () => {
@@ -383,7 +479,25 @@ window.addEventListener("DOMContentLoaded", function () {
   updateClock(); setInterval(updateClock, 1000);
   loadTrainingData(); setupChat();
 
-  var savedData = localStorage.getItem("telemetry_backup");
-  if (savedData) { try { telemetryData = JSON.parse(savedData); renderDashboard(); updateCharts(); renderHistory(); } catch(e) {} }
-  initMQTT();
+  // --- FIX LỖI LOCALSTORAGE BỊ NULL ---
+  try {
+      if (typeof localStorage !== 'undefined' && localStorage !== null) {
+          var savedData = localStorage.getItem("telemetry_backup");
+          if (savedData) { 
+              try { 
+                  telemetryData = JSON.parse(savedData); 
+                  renderDashboard(); 
+                  updateCharts(); 
+                  renderHistory(); 
+              } catch(e) {} 
+          }
+      }
+  } catch(e) {
+      console.warn("Máy này không hỗ trợ lưu dữ liệu đệm (localStorage)");
+  }
+  // ------------------------------------
+  
+  // CHẠY CẢ 2 CHẾ ĐỘ
+  initMQTT();        
+  startHTTPPolling(); 
 });
