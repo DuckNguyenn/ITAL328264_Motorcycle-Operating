@@ -95,6 +95,23 @@
               </tbody>
             </table>
           </div>
+
+          <div class="card control-card">
+            <div class="card-title">Điều khiển thiết bị</div>
+            <div class="control-row">
+                <div class="control-info">
+                  <span class="control-icon">📢</span>
+                  <span class="control-label">Còi</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="horn-toggle">
+                  <span class="slider"></span>
+                </label>
+            </div>
+            <div id="horn-status-text" class="status-text-small" style="color: #ef4444;">
+              Trạng thái: TẮT (OFF)
+            </div>
+          </div>
           <div class="sos-wrapper"><button id="sos-button" class="sos-btn">🚨 Gọi cứu hộ</button></div>
         </section>
 
@@ -162,7 +179,7 @@
     <div id="chatbox">
         <div id="chatbox-header">
             <div class="chatbox-header-left">
-                <span>Trợ lý ảo AI</span>
+                <span>Chat</span>
                 <span class="chatbox-status-dot"></span>
             </div>
             <div class="chatbox-header-right">
